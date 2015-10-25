@@ -1,0 +1,69 @@
+---
+title: "Project for Practical Machine Learning"
+author: "Katie Zheng"
+---
+
+## Download and read data 
+```{r}
+#setwd("F:/PHBS/×ÔÑ§/±à³Ì/R/7. Practical machine learning/project")
+#download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-training.csv", "pml-training.csv")
+#download.file("https://d396qusza40orc.cloudfront.net/predmachlearn/pml-testing.csv", "pml-testing.csv")
+OriginalTraining = read.csv("pml-training.csv")
+OriginalTesting = read.csv("pml-testing.csv")
+```
+## Choose predictor
+First delete columns that have NAs or empty observations that have no value for prediction, which reduces the number of predictors to 59. Delete the first column which is index. Convert all factors into numerics. 
+```{r}
+OriginalTraining2 = OriginalTraining[, colSums(is.na(OriginalTraining)) < 1]
+OriginalTraining2 = OriginalTraining2[, colSums(OriginalTraining2 != "") == nrow(OriginalTraining2)]
+OriginalTraining2 = OriginalTraining2[, -1]
+attach(OriginalTraining2)
+OriginalTraining2$user_name = seq_along(levels(user_name))[user_name]
+OriginalTraining2$cvtd_timestamp = seq_along(levels(cvtd_timestamp))[cvtd_timestamp]
+OriginalTraining2$new_window = seq_along(levels(new_window))[new_window] 
+```
+
+## Cross validation and train data using Random Forest
+Then split the training data set into two parts and use 75 percent of the data as training set and 25 percent as test set.
+```{r}
+library(caret)
+set.seed(123)
+trainIndex = createDataPartition(classe, p = 0.75, list = FALSE)
+training = OriginalTraining2[trainIndex,]
+testing = OriginalTraining2[-trainIndex,]
+detach(OriginalTraining2)
+```
+
+In random forest package, it automatically leaves out some observations for testing, so the output error rate can be regarded as the expected out of sample error.
+```{r}
+library(randomForest)
+mod = randomForest(classe ~., data = training)
+mod
+pred = predict(mod, newdata = testing)
+table(pred, testing$classe)
+```
+
+### Expected out of sample error:    
+* 0.1%
+
+Finally, we apply the algorithm to the original test set. 
+```{r}
+OriginalTesting2 = OriginalTesting[, colSums(is.na(OriginalTesting)) < 1]
+OriginalTesting2 = OriginalTesting2[, colSums(OriginalTesting2 != "") == nrow(OriginalTesting2)]
+OriginalTesting2 = OriginalTesting2[, -1]
+OriginalTesting2 = OriginalTesting2[, -59]
+attach(OriginalTesting2)
+OriginalTesting2$user_name = seq_along(levels(user_name))[user_name]
+OriginalTesting2$cvtd_timestamp = seq_along(levels(cvtd_timestamp))[cvtd_timestamp]
+OriginalTesting2$new_window = seq_along(levels(new_window))[new_window] 
+
+finalPred = predict(mod, newdata = OriginalTesting2)
+```
+
+
+
+
+
+
+
+
